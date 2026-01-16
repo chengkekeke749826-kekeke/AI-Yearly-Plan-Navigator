@@ -1,0 +1,364 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>2026 Vision OS</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/vanilla-tilt/1.8.0/vanilla-tilt.min.js"></script>
+    <link rel="stylesheet" href="style_v2.css">
+</head>
+<body class="theme-warm">
+    
+    <div id="loading-screen">
+        <div class="running-dog-container"><div class="dog">🐕</div><div class="dust">💨</div></div>
+        <p class="loading-text">System Loading...</p>
+    </div>
+
+    <nav class="browser-nav">
+        <div class="nav-tabs">
+            <button class="nav-tab active" onclick="switchPage('dashboard')"><i class="fa-solid fa-table-columns"></i> 看板</button>
+            <button class="nav-tab" onclick="switchPage('tasks')"><i class="fa-solid fa-list-check"></i> 任务流</button>
+            <button class="nav-tab" onclick="switchPage('countdowns')"><i class="fa-regular fa-clock"></i> 倒计时</button>
+            <button class="nav-tab" onclick="switchPage('journal')"><i class="fa-solid fa-book"></i> 日记</button>
+            <button class="nav-tab" onclick="switchPage('ideas')"><i class="fa-regular fa-lightbulb"></i> 灵感</button>
+        </div>
+        <div class="nav-controls">
+            <button class="icon-btn-small" onclick="cycleBackground()"><i class="fa-solid fa-palette"></i></button>
+            <button class="icon-btn-small" onclick="generatePoster()"><i class="fa-solid fa-camera"></i></button>
+        </div>
+    </nav>
+
+    <main class="main-content" id="capture-area">
+        
+        <!-- 1. 看板页 -->
+        <section id="page-dashboard" class="page-section active">
+            <header class="dashboard-header">
+                <div>
+                    <h1>2026 Vision Board</h1>
+                    <p>Designed by Caroline</p>
+                </div>
+            </header>
+            <div class="dashboard-header-actions">
+                <button class="btn-base add-goal-btn" onclick="openTaskSidebar()">+ 新建任务</button>
+            </div>
+            <div id="goals-container" class="goals-grid"></div>
+        </section>
+
+        <!-- 2. 任务页 (注意 ID: list-todo, list-done) -->
+        <section id="page-tasks" class="page-section hidden">
+            <header class="page-header"><h1>任务控制台</h1></header>
+            <div class="stats-container">
+                <div class="stat-card"><div class="stat-label">总进度</div><div class="stat-value" id="stat-progress">0%</div></div>
+                <div class="stat-card"><div class="stat-label">已完成</div><div class="stat-value" id="stat-completed">0</div></div>
+                <div class="stat-card"><div class="stat-label">待办</div><div class="stat-value" id="stat-todo">0</div></div>
+            </div>
+            <div class="all-tasks-wrapper">
+                <div class="task-column"><h3>🚀 待办事项</h3><div id="list-todo" class="task-list-box"></div></div>
+                <div class="task-column"><h3>✅ 已完成</h3><div id="list-done" class="task-list-box"></div></div>
+            </div>
+        </section>
+
+        <!-- 3. 倒计时 (注意 ID: countdown-grid) -->
+        <section id="page-countdowns" class="page-section hidden">
+            <header class="page-header"><h1>时光倒流</h1></header>
+            <div class="countdown-header-actions">
+                <button class="btn-base add-goal-btn" onclick="openCountdownSidebar()">+ 新建倒计时</button>
+            </div>
+            <div id="countdown-grid" class="goals-grid"></div>
+        </section>
+
+        <!-- 4. 日记 (重构版) -->
+        <section id="page-journal" class="page-section hidden">
+            <!-- 顶部操作栏 -->
+            <header class="journal-header-bar">
+                <h1 style="margin:0; font-size:1.8rem;">2026 记忆碎片</h1>
+            </header>
+
+            <!-- 主布局容器 -->
+            <div id="journal-main-layout" class="journal-main-layout">
+                <!-- 左侧：单日详情 (默认隐藏，点击方块后显示) -->
+                <div id="journal-detail-panel" class="journal-detail-panel hidden">
+                    <div class="detail-header">
+                        <h2 id="detail-date-title">--月--日</h2>
+                        <button class="icon-btn-small" onclick="closeJournalDetail()"><i class="fa-solid fa-xmark"></i></button>
+                    </div>
+
+                    <!-- 新增：写日记区域 -->
+                    <div id="journal-action-area" class="journal-action-area" style="padding: 0 20px 10px;">
+                        <button id="btn-show-diary-form" class="btn-base" onclick="showDiaryForm()" style="width:100%; margin-bottom:10px;">
+                            <i class="fa-solid fa-pen-nib"></i> 写日记
+                        </button>
+                        
+                        <div id="diary-form" class="diary-form hidden" style="background: rgba(255,255,255,0.5); padding: 15px; border-radius: 12px; margin-bottom: 15px;">
+                            <div class="mood-selector" style="margin-bottom:12px;">
+                                <div style="font-size:0.9rem; color:#666; margin-bottom:8px;">今天心情怎么样？</div>
+                                <div class="mood-options-grid" style="display:flex; justify-content:space-between;">
+                                    <button class="mood-btn-v2" onclick="selectDiaryMood('😊', this)">😊</button>
+                                    <button class="mood-btn-v2" onclick="selectDiaryMood('😐', this)">😐</button>
+                                    <button class="mood-btn-v2" onclick="selectDiaryMood('😔', this)">😔</button>
+                                    <button class="mood-btn-v2" onclick="selectDiaryMood('😠', this)">😠</button>
+                                    <button class="mood-btn-v2" onclick="selectDiaryMood('🥳', this)">🥳</button>
+                                </div>
+                            </div>
+                            <textarea id="diary-input-text" style="width:100%; border:1px solid #ddd; border-radius:8px; padding:10px; resize:vertical; font-family:inherit;" rows="4" placeholder="记录下今天的点滴..."></textarea>
+                            <div class="diary-form-actions" style="display:flex; justify-content:flex-end; gap:10px; margin-top:10px;">
+                                <button class="btn-base btn-secondary" onclick="hideDiaryForm()" style="background:#eee; color:#666;">取消</button>
+                                <button class="btn-base" onclick="submitDiaryEntry()">保存</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div id="detail-list-container" class="detail-list-container">
+                        <!-- 单日日记列表渲染在此 -->
+                    </div>
+                    <div class="detail-empty-state" id="detail-empty-hint">
+                        <p>这一天还没有记录</p>
+                    </div>
+                </div>
+
+                <!-- 右侧：年度/月度日历 (默认全宽，有详情时变窄) -->
+                <div id="journal-calendar-panel" class="journal-calendar-panel">
+                    <div id="calendar-scroll-view" class="calendar-scroll-view">
+                        <!-- JS 动态渲染 12 个月份板块 -->
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- 5. 灵感 (注意 ID: idea-list) -->
+        <section id="page-ideas" class="page-section hidden">
+            <header class="page-header"><h1>灵感胶囊</h1></header>
+            <div style="display:flex; gap:10px; margin-bottom:20px;">
+                <input type="text" id="idea-input" placeholder="输入灵感..." onkeypress="if(event.key==='Enter')addIdea()">
+                <button class="btn-base" onclick="addIdea()">+</button>
+            </div>
+            <div id="idea-filter-bar" class="idea-filter-bar"></div>
+            <div id="idea-list" class="goals-grid"></div>
+        </section>
+
+    </main>
+
+    <div id="idea-edit-overlay" class="idea-edit-overlay hidden">
+        <div class="idea-edit-dialog">
+            <div class="idea-edit-title">编辑灵感</div>
+            <textarea id="idea-edit-input" class="idea-edit-input" rows="4"></textarea>
+            <div class="idea-edit-actions">
+                <button class="btn-base idea-edit-cancel" onclick="closeIdeaEdit()">取消</button>
+                <button class="btn-base idea-edit-save" onclick="confirmIdeaEdit()">保存</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 看板：新建任务侧边栏 -->
+    <div id="goal-sidebar" class="sidebar-overlay hidden">
+        <div class="sidebar-backdrop" onclick="closeGoalSidebar()"></div>
+        <div class="sidebar-content">
+            <header class="sidebar-header">
+                <h3 id="goal-sidebar-title">任务清单</h3>
+                <div class="sidebar-actions">
+                    <button class="icon-btn close-btn" onclick="closeGoalSidebar()"><i class="fa-solid fa-xmark"></i></button>
+                </div>
+            </header>
+            <div class="sidebar-body">
+                <div id="checklist-container" class="checklist-container"></div>
+                <p style="margin-top:10px; font-size:0.8rem; color:#999;">勾选后会自动更新进度</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- 看板：新建任务侧边栏 -->
+    <div id="task-sidebar" class="sidebar-overlay hidden">
+        <div class="sidebar-backdrop" onclick="closeTaskSidebar()"></div>
+        <div class="sidebar-content">
+            <header class="sidebar-header">
+                <h3 id="task-sidebar-title">新建任务</h3>
+                <div class="sidebar-actions">
+                    <button class="icon-btn close-btn" onclick="closeTaskSidebar()"><i class="fa-solid fa-xmark"></i></button>
+                </div>
+            </header>
+            <div class="sidebar-body">
+                <div class="form-group">
+                    <label>标题</label>
+                    <input type="text" id="task-title">
+                </div>
+                <div class="form-group">
+                    <label>开始日期</label>
+                    <input type="date" id="task-start-date">
+                </div>
+                <div class="form-group">
+                    <label>截止日期</label>
+                    <input type="date" id="task-deadline">
+                </div>
+                <div class="form-group">
+                    <label>颜色</label>
+                    <div class="color-picker-group">
+                        <div class="color-option dot-purple" onclick="selectTaskColor('purple')" id="task-opt-purple"></div>
+                        <div class="color-option dot-blue" onclick="selectTaskColor('blue')" id="task-opt-blue"></div>
+                        <div class="color-option dot-green" onclick="selectTaskColor('green')" id="task-opt-green"></div>
+                        <div class="color-option dot-pink" onclick="selectTaskColor('pink')" id="task-opt-pink"></div>
+                        <div class="color-option dot-yellow" onclick="selectTaskColor('yellow')" id="task-opt-yellow"></div>
+                        <div class="color-option dot-orange" onclick="selectTaskColor('orange')" id="task-opt-orange"></div>
+                        <div class="color-option dot-teal" onclick="selectTaskColor('teal')" id="task-opt-teal"></div>
+                        <div class="color-option dot-gray" onclick="selectTaskColor('gray')" id="task-opt-gray"></div>
+                        <div class="color-option dot-red" onclick="selectTaskColor('red')" id="task-opt-red"></div>
+                        <div class="color-option dot-navy" onclick="selectTaskColor('navy')" id="task-opt-navy"></div>
+                        <div class="color-option dot-lilac" onclick="selectTaskColor('lilac')" id="task-opt-lilac"></div>
+                        <div class="color-option dot-mint" onclick="selectTaskColor('mint')" id="task-opt-mint"></div>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>文字颜色</label>
+                    <div style="display:flex; align-items:center; gap:10px; padding-left:6px;">
+                        <input type="color" id="task-font-color" value="#4D4157">
+                        <span style="font-size:0.85rem; color:#888;">点击色块选择卡片文字颜色</span>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>或上传卡片图片</label>
+                    <div style="display:flex; gap:10px;">
+                        <input type="file" id="task-bg-image" accept="image/*" style="display:none" onchange="previewTaskImage(this)">
+                        <button class="btn-base" onclick="document.getElementById('task-bg-image').click()"><i class="fa-solid fa-image"></i> 选择图片</button>
+                        <div id="task-img-preview" style="width:50px; height:50px; background-size:cover; border-radius:8px; display:none;"></div>
+                        <button id="task-clear-img" class="icon-btn close-btn" style="display:none;" onclick="clearTaskImage()"><i class="fa-solid fa-xmark"></i></button>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>任务清单（每行一个，子任务前加“- ”）</label>
+                    <textarea id="task-metrics" rows="8" placeholder="例：&#10;读完《小王子》&#10;- 买书&#10;- 每天看 10 页"></textarea>
+                </div>
+            </div>
+            <div class="sidebar-footer-actions">
+                <button class="btn-base" onclick="closeTaskSidebar()">取消</button>
+                <button class="btn-base add-goal-btn" onclick="saveNewTask()">保存</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 倒计时侧边栏 -->
+    <div id="countdown-sidebar" class="sidebar-overlay hidden">
+        <div class="sidebar-backdrop" onclick="closeCountdownSidebar()"></div>
+        <div class="sidebar-content">
+            <header class="sidebar-header">
+                <h3>倒计时设置</h3>
+                <div class="sidebar-actions">
+                    <button class="icon-btn delete-btn" onclick="deleteCurrentCountdown()"><i class="fa-solid fa-trash"></i></button>
+                    <button class="icon-btn close-btn" onclick="closeCountdownSidebar()"><i class="fa-solid fa-xmark"></i></button>
+                </div>
+            </header>
+            <div class="sidebar-body">
+                <div class="form-group"><label>事项名称</label><input type="text" id="cd-title"></div>
+                <div class="form-group"><label>目标日期</label><input type="date" id="cd-date"></div>
+                <div class="form-group"><label>目标时间 (可选)</label><input type="time" id="cd-time"></div>
+                <div class="form-group"><label>分类</label><select id="cd-category"><option value="life">生活</option><option value="study">学习</option><option value="work">工作</option><option value="love">纪念日</option><option value="other">其他</option></select></div>
+                
+                <div class="form-group">
+                    <label>颜色</label>
+                    <div class="color-picker-group">
+                        <div class="color-option dot-purple" onclick="selectCdColor('purple')" id="cd-opt-purple"></div>
+                        <div class="color-option dot-blue" onclick="selectCdColor('blue')" id="cd-opt-blue"></div>
+                        <div class="color-option dot-green" onclick="selectCdColor('green')" id="cd-opt-green"></div>
+                        <div class="color-option dot-pink" onclick="selectCdColor('pink')" id="cd-opt-pink"></div>
+                        <div class="color-option dot-yellow" onclick="selectCdColor('yellow')" id="cd-opt-yellow"></div>
+                        <div class="color-option dot-orange" onclick="selectCdColor('orange')" id="cd-opt-orange"></div>
+                        <div class="color-option dot-teal" onclick="selectCdColor('teal')" id="cd-opt-teal"></div>
+                        <div class="color-option dot-gray" onclick="selectCdColor('gray')" id="cd-opt-gray"></div>
+                        <div class="color-option dot-red" onclick="selectCdColor('red')" id="cd-opt-red"></div>
+                        <div class="color-option dot-navy" onclick="selectCdColor('navy')" id="cd-opt-navy"></div>
+                        <div class="color-option dot-lilac" onclick="selectCdColor('lilac')" id="cd-opt-lilac"></div>
+                        <div class="color-option dot-mint" onclick="selectCdColor('mint')" id="cd-opt-mint"></div>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label>文字颜色</label>
+                    <div style="display:flex; align-items:center; gap:10px; padding-left:6px;">
+                        <input type="color" id="cd-font-color" value="#ffffff">
+                        <span style="font-size:0.85rem; color:#888;">点击色块选择文字颜色</span>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label>或上传背景图片</label>
+                    <div style="display:flex; gap:10px;">
+                        <input type="file" id="cd-bg-image" accept="image/*" style="display:none" onchange="previewCdImage(this)">
+                        <button class="btn-base" onclick="document.getElementById('cd-bg-image').click()"><i class="fa-solid fa-image"></i> 选择图片</button>
+                        <div id="cd-img-preview" style="width:50px; height:50px; background-size:cover; border-radius:8px; display:none;"></div>
+                        <button id="cd-clear-img" class="icon-btn close-btn" style="display:none;" onclick="clearCdImage()"><i class="fa-solid fa-xmark"></i></button>
+                    </div>
+                </div>
+
+                <div class="sidebar-footer-actions">
+                    <button class="btn-base" onclick="closeCountdownSidebar()">取消</button>
+                    <button class="btn-base add-goal-btn" onclick="saveCountdown()">保存</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    <!-- AI Widget (修复：补全5个角色) -->
+    <div id="ai-widget" class="ai-widget">
+        <div id="chat-window" class="chat-window hidden">
+            <header class="chat-header">
+                <div class="header-title"><i class="fa-solid fa-sparkles" style="color:#F4DC9C"></i> AI 助手</div>
+                <div class="header-controls">
+                    <!-- ⚠️ 补全了 5 个角色 -->
+                    <select id="role-select" class="role-select">
+                        <option value="warm">温暖老师</option>
+                        <option value="toxic">毒舌朋友</option>
+                        <option value="strict">严厉教官</option>
+                        <option value="zen">禅宗大师</option>
+                        <option value="passion">热血学长</option>
+                    </select>
+                    <button id="close-chat-btn" class="close-chat-btn"><i class="fa-solid fa-xmark"></i></button>
+                </div>
+            </header>
+            <div class="chat-style-bar">
+                <button id="avatar-switch-btn" class="chat-style-btn">换头像</button>
+                <button id="bubble-switch-btn" class="chat-style-btn">换气泡</button>
+            </div>
+            <div id="chat-avatar-modal" class="chat-config-overlay hidden">
+                <div class="chat-config-dialog">
+                    <div class="chat-config-title">选择头像</div>
+                    <div class="chat-config-grid">
+                        <button class="avatar-option" data-index="0">🙂</button>
+                        <button class="avatar-option" data-index="1">😺</button>
+                        <button class="avatar-option" data-index="2">🐻</button>
+                        <button class="avatar-option" data-index="3">🦊</button>
+                    </div>
+                </div>
+            </div>
+            <div id="chat-bubble-modal" class="chat-config-overlay hidden">
+                <div class="chat-config-dialog">
+                    <div class="chat-config-title">选择聊天气泡</div>
+                    <div class="chat-config-grid">
+                        <button class="bubble-option" data-index="0">
+                            <div class="bubble-preview user-bubble bubble-theme-0">嗨</div>
+                        </button>
+                        <button class="bubble-option" data-index="1">
+                            <div class="bubble-preview user-bubble bubble-theme-1">嗨</div>
+                        </button>
+                        <button class="bubble-option" data-index="2">
+                            <div class="bubble-preview user-bubble bubble-theme-2">嗨</div>
+                        </button>
+                        <button class="bubble-option" data-index="3">
+                            <div class="bubble-preview user-bubble bubble-theme-3">嗨</div>
+                        </button>
+                    </div>
+                </div>
+            </div>
+            <div id="chat-history" class="chat-history"></div>
+            <div class="chat-input-area">
+                <input type="text" id="user-input" placeholder="输入...">
+                <button id="send-btn"><i class="fa-solid fa-arrow-up"></i></button>
+            </div>
+        </div>
+        <button id="ai-toggle-btn" class="ai-toggle-btn"><i class="fa-solid fa-robot"></i></button>
+    </div>
+
+    <div id="celebration-overlay"><div class="celebration-text"></div></div>
+    <script src="app_v2.js"></script>
+
+</body>
+</html>
